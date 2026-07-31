@@ -1,1 +1,10 @@
-/build
+.gradle/
+.idea/
+**/build/
+dist-preview/
+local.properties
+node_modules/
+*.iml
+*.jks
+*.keystore
+*.zip
