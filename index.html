@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090b0e">
+  <title>ScrapPro Preview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app">
+    <section class="screen active" data-screen="home">
+      <img class="banner" src="assets/scrap_main.png" alt="ScrapPro dashboard">
+      <div class="content">
+        <p class="eyebrow">ACTIVE HAUL</p>
+        <article class="card split"><span>Current load<br><small>Copper · Brass · Steel</small></span><strong>753 lb</strong></article>
+        <div class="grid two"><article class="card"><small>EST. GROSS</small><b>$329.10</b></article><article class="card"><small>EST. NET</small><b>$287.60</b></article></div>
+        <p class="eyebrow">QUICK ACTIONS</p>
+        <div class="grid two actions"><button data-go="profit">Profit</button><button data-go="wire">Wire ROI</button><button data-go="payload">Payload</button><button data-go="id">Identify</button><button data-go="yards">Find Yards</button></div>
+        <p class="eyebrow">RECENT YARD ACTIVITY</p>
+        <article class="card split"><span>Apex Metals<br><small>42 lb bare bright copper</small></span><strong>$159.60</strong></article>
+        <article class="card split"><span>Steel City Scrap<br><small>680 lb prepared steel</small></span><strong>$54.40</strong></article>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="profit">
+      <img class="banner" src="assets/scrap_calc.png" alt="Scrap profit calculator">
+      <div class="content">
+        <div class="grid two"><label>Metal<select id="p-metal"><option value="3.80">Bare bright copper</option><option value="2.10">Brass</option><option value="0.50">Sheet aluminum</option><option value="0.08">Prepared steel</option></select></label><label>Weight (lb)<input id="p-weight" type="number" min="0" value="100"></label></div>
+        <div class="grid two"><label>Price ($/lb)<input id="p-price" type="number" min="0" step="0.01" value="3.80"></label><label>Recoverable yield (%)<input id="p-yield" type="number" min="0" max="100" value="100"></label></div>
+        <label class="toggle"><input id="p-clean" type="checkbox" checked> Clean / separated material</label>
+        <div class="grid two"><label>Fuel ($)<input id="p-fuel" type="number" min="0" value="20"></label><label>Other expense ($)<input id="p-other" type="number" min="0" value="0"></label><label>Labor hours<input id="p-hours" type="number" min="0" step="0.25" value="1"></label><label>Labor rate ($/hr)<input id="p-rate" type="number" min="0" value="25"></label></div>
+        <article class="result"><small>NET PROFIT</small><output id="p-net">$0.00</output><span id="p-detail"></span></article>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="wire">
+      <img class="banner" src="assets/scrap_calc.png" alt="Wire stripping calculator">
+      <div class="content">
+        <label>Wire type<select id="w-type"><option data-yield="80">THHN solid</option><option data-yield="65" selected>Romex house wire</option><option data-yield="85">High recovery cable</option><option data-yield="35">Data wire</option></select></label>
+        <div class="grid two"><label>Weight (lb)<input id="w-weight" type="number" min="0" value="50"></label><label>Recovery rate (%)<input id="w-yield" type="number" min="0" max="100" value="65"></label><label>Insulated ($/lb)<input id="w-insulated" type="number" min="0" step="0.01" value="1.20"></label><label>Bare bright ($/lb)<input id="w-bare" type="number" min="0" step="0.01" value="3.80"></label><label>Strip speed (lb/hr)<input id="w-speed" type="number" min="0" value="20"></label><label>Machine cost ($)<input id="w-machine" type="number" min="0" value="500"></label></div>
+        <article class="result"><small id="w-rec">ROI</small><output id="w-gain">$0.00</output><span id="w-detail"></span></article>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="payload">
+      <img class="banner" src="assets/load_bal.png" alt="Payload and axle balancer">
+      <div class="content">
+        <div class="grid two"><label>Vehicle payload (lb)<input id="v-max" type="number" min="0" value="1500"></label><label>Truck cargo (lb)<input id="v-cargo" type="number" min="0" value="1000"></label><label>Trailer GVWR (lb)<input id="t-gvwr" type="number" min="0" value="7000"></label><label>Trailer empty (lb)<input id="t-empty" type="number" min="0" value="2000"></label><label>Trailer cargo (lb)<input id="t-cargo" type="number" min="0" value="3000"></label><label>Tongue weight (lb)<input id="t-tongue" type="number" min="0" value="600"></label></div>
+        <article class="card"><small>TRUCK CAPACITY</small><div class="meter"><i id="truck-meter"></i></div><b id="truck-status"></b></article>
+        <article class="card"><small>TRAILER CAPACITY</small><div class="meter"><i id="trailer-meter"></i></div><b id="trailer-status"></b></article>
+        <article class="result" id="tongue-result"><small>TONGUE SAFE ZONE: 10%–15%</small><output id="tongue-status"></output><span id="tongue-detail"></span></article>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="id">
+      <img class="banner" src="assets/id_wizard.png" alt="Material diagnostic wizard">
+      <div class="content"><div id="wizard" class="card"></div></div>
+    </section>
+
+    <section class="screen" data-screen="yards">
+      <img class="banner" src="assets/price_track.png" alt="Scrap yard price tracker">
+      <div class="content">
+        <label>Accepted metals filter<select id="yard-filter"><option value="all">All materials</option><option value="nonferrous">Non-ferrous</option><option value="ferrous">Ferrous</option><option value="vehicles">Vehicles</option></select></label>
+        <div id="yard-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Primary">
+    <button class="selected" data-tab="home">⌂<span>Home</span></button><button data-tab="profit">＄<span>Profit</span></button><button data-tab="wire">⌁<span>Wire</span></button><button data-tab="payload">▰<span>Payload</span></button><button data-tab="id">⌕<span>ID</span></button><button data-tab="yards">⌖<span>Yards</span></button>
+  </nav>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

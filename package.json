@@ -1,0 +1,14 @@
+{
+  "name": "scrappro-preview",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite preview --host 0.0.0.0",
+    "build": "vite build preview --outDir ../dist-preview --emptyOutDir",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}
