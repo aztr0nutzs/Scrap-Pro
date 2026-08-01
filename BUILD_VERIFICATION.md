@@ -52,3 +52,11 @@ The container initially had no Android SDK. Platform 36/36.1 and Build Tools 36.
 - Preview build: `dist-preview/` (generated and ignored)
 
 No emulator or physical Android device was available, so installation, launch, and physical traversal of the six destinations were not performed. The Android navigation graph, web tabs, JVM tests, resource packaging, and APK assembly were verified programmatically.
+
+## Phase 2 persistent Home verification
+
+- Temporarily restored the previously verified binary wrapper/artwork from commit `fe4e3f8` as uncommitted build inputs; all were removed again before the Phase 2 commit.
+- `./gradlew test` passed 13 tests, including six active-haul repository cases and the schema 1→2 migration test.
+- `./gradlew assembleDebug` passed and produced `app/build/outputs/apk/debug/app-debug.apk`.
+- `python3 scripts/verify_project.py` passed after binary cleanup and verifies repository-backed Home states, explicit non-destructive migration, Profit persistence wiring, and absence of the former fake dashboard values.
+- No emulator or physical device was available. Room restoration is covered by reopening the repository over the same database; tab restoration remains covered structurally by Navigation Compose save/restore checks.

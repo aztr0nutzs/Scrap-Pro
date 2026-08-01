@@ -28,7 +28,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import android.app.Application
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,16 +43,28 @@ import com.example.domain.model.ScrapItem
 import com.example.ui.core.UiState
 import com.example.ui.theme.Copper
 import com.example.ui.theme.IndustrialOrange
+import com.example.data.local.ScrapProDatabase
+import com.example.data.repository.HomeRepository
+import com.example.data.repository.RoomHomeRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 data class CalculatorUiState(
-    val loadItems: List<ScrapItem> = listOf(
-        ScrapItem(MetalGrade.BARE_BRIGHT_COPPER, 10.0, MetalGrade.BARE_BRIGHT_COPPER.defaultPricePerLb, true)
-    ),
+    val loadItems: List<ScrapItem> = emptyList(),
     val expense: ProcessingExpense = ProcessingExpense(),
-    val result: ProfitCalculationResult? = null
+    val result: ProfitCalculationResult? = null,
+    val saveMessage: String? = null
 )
 
-class CalculatorViewModel : ViewModel() {
+class CalculatorViewModel private constructor(
+    application: Application,
+    private val homeRepository: HomeRepository
+) : AndroidViewModel(application) {
+    constructor(application: Application) : this(
+        application,
+        RoomHomeRepository(ScrapProDatabase.getDatabase(application).homeDao())
+    )
+
     private val engine = ProfitCalculationEngine()
 
     private val _uiState = MutableStateFlow<UiState<CalculatorUiState>>(UiState.Success(CalculatorUiState()))
@@ -60,11 +74,27 @@ class CalculatorViewModel : ViewModel() {
 
     init {
         recalculate()
+        viewModelScope.launch {
+            runCatching { homeRepository.observeActiveHaul().first() }
+                .onSuccess { haul ->
+                    if (haul != null) {
+                        currentState = currentState.copy(
+                            loadItems = haul.items,
+                            expense = haul.expense,
+                            saveMessage = null
+                        )
+                        recalculate()
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.value = UiState.Error(error.message ?: "Unable to restore the active haul")
+                }
+        }
     }
 
     fun addItem(grade: MetalGrade) {
         val newItem = ScrapItem(grade, 0.0, grade.defaultPricePerLb, true)
-        currentState = currentState.copy(loadItems = currentState.loadItems + newItem)
+        currentState = currentState.copy(loadItems = currentState.loadItems + newItem, saveMessage = null)
         recalculate()
     }
     
@@ -72,7 +102,7 @@ class CalculatorViewModel : ViewModel() {
         val updated = currentState.loadItems.toMutableList()
         if (index in updated.indices) {
             updated.removeAt(index)
-            currentState = currentState.copy(loadItems = updated)
+            currentState = currentState.copy(loadItems = updated, saveMessage = null)
             recalculate()
         }
     }
@@ -87,7 +117,7 @@ class CalculatorViewModel : ViewModel() {
                 pricePerLb = price ?: item.pricePerLb,
                 recoverableYieldPercent = yieldPercent ?: item.recoverableYieldPercent
             )
-            currentState = currentState.copy(loadItems = updated)
+            currentState = currentState.copy(loadItems = updated, saveMessage = null)
             recalculate()
         }
     }
@@ -99,9 +129,23 @@ class CalculatorViewModel : ViewModel() {
                 tolls = tolls.coerceAtLeast(0.0),
                 processingLaborHours = laborHours.coerceAtLeast(0.0),
                 hourlyLaborRate = hourlyRate.coerceAtLeast(0.0)
-            )
+            ),
+            saveMessage = null
         )
         recalculate()
+    }
+
+    fun saveToActiveHaul() {
+        viewModelScope.launch {
+            runCatching { homeRepository.saveActiveHaul(currentState.loadItems, currentState.expense) }
+                .onSuccess {
+                    currentState = currentState.copy(saveMessage = "Saved to active haul")
+                    recalculate()
+                }
+                .onFailure { error ->
+                    _uiState.value = UiState.Error(error.message ?: "Unable to save the active haul")
+                }
+        }
     }
 
     private fun recalculate() {
@@ -183,6 +227,12 @@ fun ProfitCalculatorScreen(viewModel: CalculatorViewModel = androidx.lifecycle.v
                 is UiState.Success -> {
                     val data = state.data
                     val result = data.result
+                    LaunchedEffect(data.expense) {
+                        fuel = data.expense.fuelCost.toString()
+                        tolls = data.expense.tolls.toString()
+                        laborHours = data.expense.processingLaborHours.toString()
+                        hourlyRate = data.expense.hourlyLaborRate.toString()
+                    }
 
                     // Summary Card
                     OutlinedCard(
@@ -303,6 +353,20 @@ fun ProfitCalculatorScreen(viewModel: CalculatorViewModel = androidx.lifecycle.v
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(laborHours, { laborHours = it; updateExpenses() }, label = { Text("Labor hours") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
                         OutlinedTextField(hourlyRate, { hourlyRate = it; updateExpenses() }, label = { Text("$/hour") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
+                    }
+                    Button(
+                        onClick = viewModel::saveToActiveHaul,
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp).height(48.dp),
+                        enabled = data.loadItems.isNotEmpty()
+                    ) {
+                        Text("Save to active haul")
+                    }
+                    data.saveMessage?.let { message ->
+                        Text(
+                            message,
+                            color = Color(0xFF34D399),
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
             }

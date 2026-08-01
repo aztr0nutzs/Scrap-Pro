@@ -14,6 +14,9 @@ KOTLIN = "\n".join(p.read_text(errors="replace") for p in (ANDROID / "java").rgl
 BUILD_TEXT = "\n".join(p.read_text(errors="replace") for p in [ROOT / "build.gradle.kts", ROOT / "app/build.gradle.kts", ROOT / "gradle/libs.versions.toml", ANDROID / "AndroidManifest.xml", ROOT / ".env.example"])
 HTML = (ROOT / "preview/index.html").read_text()
 CSS = (ROOT / "preview/styles.css").read_text()
+HOME = (ANDROID / "java/com/example/ui/home/HomeScreen.kt").read_text()
+DATABASE = (ANDROID / "java/com/example/data/local/ScrapProDatabase.kt").read_text()
+PROFIT = (ANDROID / "java/com/example/ui/calculators/ProfitCalculator.kt").read_text()
 
 errors: list[str] = []
 
@@ -125,6 +128,17 @@ if "setPackage(\"com.google.android.apps.maps\")" not in KOTLIN or "geo:0,0?q=" 
 if "ACTION_DIAL" not in KOTLIN or "NAVIGATE NOW" not in KOTLIN:
     errors.append("Yard call/navigation actions are incomplete")
 
+for forbidden_home_value in ("753 lb", "$329.10", "$287.60", "Apex Metals", "Steel City Scrap", "Quick Cash"):
+    if forbidden_home_value in HOME:
+        errors.append(f"Hardcoded Home dashboard value remains: {forbidden_home_value}")
+for required_home_contract in ("HomeViewModel", "HomeUiState.Loading", "HomeUiState.Empty", "HomeUiState.Populated", "HomeUiState.Error"):
+    if required_home_contract not in HOME + KOTLIN:
+        errors.append(f"Persistent Home contract missing: {required_home_contract}")
+if "fallbackToDestructiveMigration" in DATABASE or "MIGRATION_1_2" not in DATABASE:
+    errors.append("Room must use the explicit 1-to-2 migration without destructive fallback")
+if "saveToActiveHaul" not in PROFIT or "RoomHomeRepository" not in PROFIT:
+    errors.append("Profit Calculator is not connected to the persistent active haul")
+
 if errors:
     print("ScrapPro verification FAILED")
     for error in errors:
@@ -140,4 +154,5 @@ print("- no Maps SDK, secrets plugin, map key, Coil, crop, or title overlay")
 print("- native dialer and Google Maps intent actions")
 print("- conventional Gradle/source/resource placement and executable wrapper script")
 print("- Kotlin package-to-directory and Android resource-reference validation")
+print("- repository-backed Home states, explicit Room migration, and Profit-to-haul persistence")
 print(f"- duplicate-content groups reviewed: {len(duplicate_groups)}")
