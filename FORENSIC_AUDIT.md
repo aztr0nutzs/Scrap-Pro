@@ -1,5 +1,7 @@
 # ScrapPro Forensic Tab & System Audit
 
+> **Binary-free PR note:** The reconstruction identified and assigned the exact binary destinations described below, but binary payloads are intentionally excluded from this branch for pull-request creation. Restore the authoritative PNG, WebP, screenshot baseline, and Gradle wrapper JAR files at the paths recorded in `PROJECT_RECONSTRUCTION_REPORT.md`; no placeholder or recompressed substitute is acceptable.
+
 ## SECTION 1: FORENSIC TAB & SYSTEM AUDIT TABLE
 
 | Severity | Tab / Screen | Defect Type | Root Cause | Exact Impact | Remediation |
