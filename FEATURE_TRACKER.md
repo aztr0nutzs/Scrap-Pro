@@ -30,3 +30,14 @@ This branch remains binary-free. Restore the authoritative wrapper and artwork l
 | Price tracking | Complete | User-reported yard prices support units, timestamps, age/staleness, history, creation, and deletion. |
 | Keyless intents | Complete | Validated dialer and native geo intents use resolver checks, browser fallback, and visible failure messages. |
 | Safe migration | Complete | Explicit migration 2→3 preserves legacy yard/price columns and adds the complete directory schema. |
+
+## Phase 4 — Axle-level tow safety
+
+| Requirement | Status | Implementation |
+|---|---|---|
+| Pure defensive engine | Complete | All GVWR, GAWR, hitch, trailer, axle, tongue, cargo, position, and margin equations are finite and unit tested. |
+| Classification and correction | Complete | Unclamped percentages drive Green/Yellow/Red statuses and specific corrective recommendations. |
+| Exact tongue boundaries | Complete | 10%–15% range and 9.9/10/12.5/15/15.1 boundary behavior are tested. |
+| Dynamic visualizer | Complete | Vehicle, hitch, trailer axle, and normalized cargo positions update with the current inputs. |
+| Validation and disclaimer | Complete | Field-level errors and persistent label/manual/hitch/scale confirmation language are displayed. |
+| Persistence and profiles | Complete | Room schema v4 autosaves current input and stores/restores named tow profiles. |

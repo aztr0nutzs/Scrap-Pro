@@ -68,3 +68,11 @@ No emulator or physical Android device was available, so installation, launch, a
 - `./gradlew assembleDebug` passed and produced `app/build/outputs/apk/debug/app-debug.apk`.
 - `npm ci && npm run build` passed with zero audit vulnerabilities.
 - `python3 scripts/verify_project.py` passed after binary cleanup and rejects fictional 555 records, silent New York fallback, missing location gating, and missing Phase 3 contracts.
+
+## Phase 4 tow-safety verification
+
+- Temporarily restored the authoritative wrapper and artwork from commit `6141566` as uncommitted build inputs; removed them before commit and archive creation.
+- `./gradlew test` passed the full suite including empty/zero/negative/extreme inputs, all five tongue boundaries, independent hitch/rear-axle/trailer-axle overloads, profile restoration, migration 3→4, and Payload Compose screenshot rendering.
+- `./gradlew assembleDebug` passed and produced `app/build/outputs/apk/debug/app-debug.apk`.
+- `npm ci && npm run build` passed with zero audit vulnerabilities.
+- `python3 scripts/verify_project.py` passed after binary cleanup and validates the axle, hitch, visualizer, disclaimer, profile, and migration contracts.

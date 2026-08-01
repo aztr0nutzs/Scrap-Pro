@@ -19,6 +19,8 @@ DATABASE = (ANDROID / "java/com/example/data/local/ScrapProDatabase.kt").read_te
 PROFIT = (ANDROID / "java/com/example/ui/calculators/ProfitCalculator.kt").read_text()
 YARDS = (ANDROID / "java/com/example/ui/yardfinder/YardFinderScreen.kt").read_text()
 LOCATION = (ANDROID / "java/com/example/data/repository/LocationRepository.kt").read_text()
+PAYLOAD = (ANDROID / "java/com/example/ui/calculators/PayloadSafety.kt").read_text()
+PAYLOAD_ENGINE = (ANDROID / "java/com/example/domain/engine/PayloadSafetyEngine.kt").read_text()
 
 errors: list[str] = []
 
@@ -148,6 +150,11 @@ for required_yard in ("Use My Location", "NAVIGATE NOW", "ACTION_DIAL", "resolve
         errors.append(f"Phase 3 yard contract missing: {required_yard}")
 if "locationPrecondition" not in LOCATION or "MIGRATION_2_3" not in DATABASE:
     errors.append("Permission gating or Room migration 2-to-3 is missing")
+for required_payload in ("frontGawr", "rearGawr", "receiverRating", "trailerAxleRating", "truckCargoPosition", "safetyMarginPercent", "LoadDistributionVisualizer", "door-jamb labels", "certified scale", "TowProfileRepository"):
+    if required_payload not in PAYLOAD + PAYLOAD_ENGINE + KOTLIN:
+        errors.append(f"Phase 4 payload contract missing: {required_payload}")
+if "MIGRATION_3_4" not in DATABASE or ".coerceAtMost(100" in PAYLOAD_ENGINE:
+    errors.append("Tow profile migration is missing or engineering percentages are hidden")
 
 if errors:
     print("ScrapPro verification FAILED")
@@ -166,4 +173,5 @@ print("- conventional Gradle/source/resource placement and executable wrapper sc
 print("- Kotlin package-to-directory and Android resource-reference validation")
 print("- repository-backed Home states, explicit Room migration, and Profit-to-haul persistence")
 print("- persistent yard CRUD/prices, permission-gated location, filters, dialer, and map fallback")
+print("- axle-level tow engine, field validation, visualizer, disclaimer, and Room profiles")
 print(f"- duplicate-content groups reviewed: {len(duplicate_groups)}")

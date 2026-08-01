@@ -10,11 +10,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.local.dao.HomeDao
 import com.example.data.local.dao.TripLogDao
 import com.example.data.local.dao.YardDao
+import com.example.data.local.dao.TowProfileDao
 import com.example.data.local.entity.ActiveHaulEntity
 import com.example.data.local.entity.ActiveHaulItemEntity
 import com.example.data.local.entity.TripLogEntity
 import com.example.data.local.entity.YardEntity
 import com.example.data.local.entity.YardPriceEntity
+import com.example.data.local.entity.TowProfileEntity
 
 @Database(
     entities = [
@@ -22,9 +24,10 @@ import com.example.data.local.entity.YardPriceEntity
         YardPriceEntity::class,
         TripLogEntity::class,
         ActiveHaulEntity::class,
-        ActiveHaulItemEntity::class
+        ActiveHaulItemEntity::class,
+        TowProfileEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -32,6 +35,7 @@ abstract class ScrapProDatabase : RoomDatabase() {
     abstract fun yardDao(): YardDao
     abstract fun tripLogDao(): TripLogDao
     abstract fun homeDao(): HomeDao
+    abstract fun towProfileDao(): TowProfileDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -92,6 +96,12 @@ abstract class ScrapProDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `tow_profiles` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `encodedInput` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)")
+            }
+        }
+
         @Volatile
         private var instance: ScrapProDatabase? = null
 
@@ -102,7 +112,7 @@ abstract class ScrapProDatabase : RoomDatabase() {
                     ScrapProDatabase::class.java,
                     "scrappro_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }
