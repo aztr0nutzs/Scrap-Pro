@@ -36,7 +36,7 @@ class Migration1To2Test {
         }
 
         val database = Room.databaseBuilder(context, ScrapProDatabase::class.java, name)
-            .addMigrations(ScrapProDatabase.MIGRATION_1_2)
+            .addMigrations(ScrapProDatabase.MIGRATION_1_2, ScrapProDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
         database.openHelper.writableDatabase

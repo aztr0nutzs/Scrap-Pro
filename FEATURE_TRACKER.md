@@ -17,3 +17,16 @@
 ## Follow-up asset delivery
 
 This branch remains binary-free. Restore the authoritative wrapper and artwork listed in `README.md` in a separate asset-only change; do not substitute placeholders or recompressed files.
+
+## Phase 3 — Persistent yards directory and price tracker
+
+| Requirement | Status | Implementation |
+|---|---|---|
+| Permission-safe directory | Complete | Room yards render immediately; location is requested only through “Use My Location” and protected access is gated. |
+| Location states and distance | Complete | Approximate, precise, denied, permanently denied, disabled, unavailable, and active states are explicit; acquired coordinates recalculate and sort distances. |
+| Yard CRUD and favorites | Complete | Users can add, edit, delete, favorite, and search complete local yard profiles. |
+| Starter dataset integrity | Complete | Optional import creates clearly labeled editable templates without phone numbers, prices, or claims of live accuracy. |
+| Filters and empty states | Complete | Metal, vehicle, e-waste, hours, scale, payout, favorites, radius, empty, and no-match states are implemented. |
+| Price tracking | Complete | User-reported yard prices support units, timestamps, age/staleness, history, creation, and deletion. |
+| Keyless intents | Complete | Validated dialer and native geo intents use resolver checks, browser fallback, and visible failure messages. |
+| Safe migration | Complete | Explicit migration 2→3 preserves legacy yard/price columns and adds the complete directory schema. |

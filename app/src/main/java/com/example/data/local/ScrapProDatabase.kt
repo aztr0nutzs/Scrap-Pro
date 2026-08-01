@@ -24,7 +24,7 @@ import com.example.data.local.entity.YardPriceEntity
         ActiveHaulEntity::class,
         ActiveHaulItemEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -69,6 +69,29 @@ abstract class ScrapProDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `latitude` REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `longitude` REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `operatingHours` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `temporarilyClosed` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `acceptsFerrous` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `acceptsNonFerrous` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `acceptsVehicles` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `acceptsEWaste` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `cashPayout` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `checkPayout` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `digitalPayout` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `requiredId` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `hasTruckScale` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `favorite` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yards` ADD COLUMN `bundledStarter` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `yard_prices` ADD COLUMN `price` REAL NOT NULL DEFAULT 0.0")
+                db.execSQL("ALTER TABLE `yard_prices` ADD COLUMN `unit` TEXT NOT NULL DEFAULT 'lb'")
+                db.execSQL("UPDATE `yard_prices` SET `price` = CASE WHEN `pricePerLb` > 0 THEN `pricePerLb` ELSE `pricePerTon` END, `unit` = CASE WHEN `pricePerLb` > 0 THEN 'lb' ELSE 'ton' END")
+            }
+        }
+
         @Volatile
         private var instance: ScrapProDatabase? = null
 
@@ -79,7 +102,7 @@ abstract class ScrapProDatabase : RoomDatabase() {
                     ScrapProDatabase::class.java,
                     "scrappro_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

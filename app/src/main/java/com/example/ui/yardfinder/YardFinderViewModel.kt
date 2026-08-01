@@ -4,111 +4,106 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.domain.ScrapYardLocation
+import com.example.data.domain.YardFilters
+import com.example.data.domain.YardPrice
+import com.example.data.domain.distanceMiles
+import com.example.data.local.ScrapProDatabase
 import com.example.data.repository.LocationRepository
+import com.example.data.repository.LocationResult
+import com.example.data.repository.YardRepository
 import com.google.android.gms.location.LocationServices
+import java.time.LocalDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+
+sealed interface LocationUiState {
+    data object NotRequested : LocationUiState
+    data object RequestPermission : LocationUiState
+    data object Loading : LocationUiState
+    data class Active(val approximate: Boolean) : LocationUiState
+    data object Denied : LocationUiState
+    data object PermanentlyDenied : LocationUiState
+    data object ServicesDisabled : LocationUiState
+    data object Unavailable : LocationUiState
+}
 
 data class YardFinderUiState(
     val yards: List<ScrapYardLocation> = emptyList(),
-    val filteredYards: List<ScrapYardLocation> = emptyList(),
-    val isLoading: Boolean = true,
-    val searchQuery: String = "",
-    val searchRadius: Int = 25, // miles
-    val filterOpenNow: Boolean = false,
-    val filterTruckScale: Boolean = false,
-    val filterCashPayout: Boolean = false,
-    val filterNonFerrous: Boolean = false,
-    val isMapView: Boolean = false,
+    val visibleYards: List<ScrapYardLocation> = emptyList(),
+    val prices: Map<Long, List<YardPrice>> = emptyMap(),
+    val search: String = "",
+    val filters: YardFilters = YardFilters(),
+    val location: LocationUiState = LocationUiState.NotRequested,
     val selectedYard: ScrapYardLocation? = null,
-    val currentLocation: Pair<Double, Double> = Pair(0.0, 0.0)
+    val message: String? = null
 )
 
 class YardFinderViewModel(application: Application) : AndroidViewModel(application) {
-    
-    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
-    private val repository = LocationRepository(fusedLocationClient)
-    
-    private val _uiState = MutableStateFlow(YardFinderUiState())
-    val uiState: StateFlow<YardFinderUiState> = _uiState.asStateFlow()
+    private val repository = YardRepository(ScrapProDatabase.getDatabase(application).yardDao())
+    private val locationRepository = LocationRepository(LocationServices.getFusedLocationProviderClient(application))
+    private val controls = MutableStateFlow(Controls())
 
-    init {
-        fetchLocationsWithPermission()
-    }
+    val uiState: StateFlow<YardFinderUiState> = combine(
+        repository.observeYards(), repository.observePrices(), controls
+    ) { yards, prices, control ->
+        val located = yards.map { yard ->
+            control.coordinates?.let { (lat, lng) ->
+                yard.copy(distanceMiles = distanceMiles(lat, lng, yard.latitude, yard.longitude))
+            } ?: yard
+        }
+        val visible = located.filter { it.matches(control.search, control.filters, LocalDateTime.now()) }
+            .sortedWith(compareByDescending<ScrapYardLocation> { it.favorite }.thenBy { it.distanceMiles ?: Double.MAX_VALUE }.thenBy { it.name })
+        YardFinderUiState(located, visible, prices, control.search, control.filters, control.location, control.selected, control.message)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), YardFinderUiState())
 
-    fun fetchLocationsWithPermission() {
+    fun updateSearch(value: String) = update { copy(search = value) }
+    fun updateFilters(value: YardFilters) = update { copy(filters = value) }
+    fun requestLocationPermission() = update { copy(location = LocationUiState.RequestPermission, message = null) }
+
+    fun useLocation(hasCoarse: Boolean, hasFine: Boolean, servicesEnabled: Boolean, permanentlyDenied: Boolean) {
+        if (!hasCoarse) {
+            update { copy(location = if (permanentlyDenied) LocationUiState.PermanentlyDenied else LocationUiState.Denied) }
+            return
+        }
+        update { copy(location = LocationUiState.Loading, message = null) }
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val location = repository.getCurrentLocation()
-            
-            val lat = location?.latitude ?: 40.7128 // Default to NYC for simulation
-            val lng = location?.longitude ?: -74.0060
-            
-            _uiState.value = _uiState.value.copy(currentLocation = Pair(lat, lng))
-            
-            val yards = repository.getNearbyYards(lat, lng)
-            
-            _uiState.value = _uiState.value.copy(
-                yards = yards,
-                isLoading = false
-            )
-            applyFilters()
+            when (val result = locationRepository.currentLocation(true, hasFine, servicesEnabled)) {
+                is LocationResult.Available -> update { copy(coordinates = result.latitude to result.longitude, location = LocationUiState.Active(!result.precise)) }
+                LocationResult.ServicesDisabled -> update { copy(location = LocationUiState.ServicesDisabled) }
+                LocationResult.Unavailable -> update { copy(location = LocationUiState.Unavailable) }
+                LocationResult.PermissionDenied -> update { copy(location = LocationUiState.Denied) }
+            }
         }
     }
 
-    fun updateSearchQuery(query: String) {
-        _uiState.value = _uiState.value.copy(searchQuery = query)
-        applyFilters()
-    }
+    fun select(yard: ScrapYardLocation?) = update { copy(selected = yard) }
+    fun saveYard(yard: ScrapYardLocation) = launch("Yard saved") { repository.saveYard(yard) }
+    fun deleteYard(yard: ScrapYardLocation) = launch("Yard deleted") { repository.deleteYard(yard) }
+    fun toggleFavorite(yard: ScrapYardLocation) = launch(null) { repository.toggleFavorite(yard) }
+    fun importStarterDataset() = launch("Bundled starter templates imported; edit them before use") { repository.importStarterDataset() }
+    fun savePrice(price: YardPrice) = launch("Price saved as user-reported data") { repository.savePrice(price) }
+    fun deletePrice(price: YardPrice) = launch("Price deleted") { repository.deletePrice(price) }
+    fun showMessage(message: String) = update { copy(message = message) }
+    fun clearMessage() = update { copy(message = null) }
 
-    fun updateRadius(radius: Int) {
-        _uiState.value = _uiState.value.copy(searchRadius = radius)
-        applyFilters()
+    private fun launch(message: String?, block: suspend () -> Unit) = viewModelScope.launch {
+        runCatching { block() }.fold(
+            onSuccess = { update { copy(message = message) } },
+            onFailure = { error -> update { copy(message = error.message ?: "Operation failed") } }
+        )
     }
+    private fun update(block: Controls.() -> Controls) { controls.value = controls.value.block() }
 
-    fun toggleFilterOpenNow() {
-        _uiState.value = _uiState.value.copy(filterOpenNow = !_uiState.value.filterOpenNow)
-        applyFilters()
-    }
-
-    fun toggleFilterTruckScale() {
-        _uiState.value = _uiState.value.copy(filterTruckScale = !_uiState.value.filterTruckScale)
-        applyFilters()
-    }
-
-    fun toggleFilterCashPayout() {
-        _uiState.value = _uiState.value.copy(filterCashPayout = !_uiState.value.filterCashPayout)
-        applyFilters()
-    }
-
-    fun toggleFilterNonFerrous() {
-        _uiState.value = _uiState.value.copy(filterNonFerrous = !_uiState.value.filterNonFerrous)
-        applyFilters()
-    }
-
-    fun toggleViewMode() {
-        _uiState.value = _uiState.value.copy(isMapView = !_uiState.value.isMapView)
-    }
-    
-    fun selectYard(yard: ScrapYardLocation?) {
-        _uiState.value = _uiState.value.copy(selectedYard = yard)
-    }
-
-    private fun applyFilters() {
-        val currentState = _uiState.value
-        val filtered = currentState.yards.filter { yard ->
-            val matchesQuery = currentState.searchQuery.isEmpty() || 
-                    yard.name.contains(currentState.searchQuery, ignoreCase = true)
-            val matchesRadius = yard.distanceMiles <= currentState.searchRadius
-            val matchesOpenNow = !currentState.filterOpenNow || yard.isOpenNow()
-            val matchesTruckScale = !currentState.filterTruckScale || yard.hasTruckScale
-            val matchesCash = !currentState.filterCashPayout || yard.payoutType.contains("Cash", ignoreCase = true)
-            val matchesNonFerrous = !currentState.filterNonFerrous || yard.acceptsNonFerrous
-
-            matchesQuery && matchesRadius && matchesOpenNow && matchesTruckScale && matchesCash && matchesNonFerrous
-        }
-        _uiState.value = currentState.copy(filteredYards = filtered)
-    }
+    private data class Controls(
+        val search: String = "",
+        val filters: YardFilters = YardFilters(),
+        val coordinates: Pair<Double, Double>? = null,
+        val location: LocationUiState = LocationUiState.NotRequested,
+        val selected: ScrapYardLocation? = null,
+        val message: String? = null
+    )
 }

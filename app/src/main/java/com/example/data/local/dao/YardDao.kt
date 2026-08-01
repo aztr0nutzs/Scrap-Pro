@@ -8,27 +8,27 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface YardDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertYard(yard: YardEntity): Long
+    @Query("SELECT * FROM yards ORDER BY favorite DESC, yardName ASC")
+    fun observeYards(): Flow<List<YardEntity>>
 
-    @Update
-    suspend fun updateYard(yard: YardEntity)
+    @Query("SELECT * FROM yard_prices WHERE metalGrade = :metalGrade ORDER BY lastUpdatedTimestamp DESC")
+    fun observePricesForMetal(metalGrade: MetalGrade): Flow<List<YardPriceEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertYard(yard: YardEntity): Long
 
     @Delete
     suspend fun deleteYard(yard: YardEntity)
 
-    @Query("SELECT * FROM yards ORDER BY yardName ASC")
-    fun getAllYards(): Flow<List<YardEntity>>
+    @Query("SELECT COUNT(*) FROM yards WHERE bundledStarter = 1")
+    suspend fun starterCount(): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertYardPrice(price: YardPriceEntity): Long
+    suspend fun upsertPrices(prices: List<YardPriceEntity>)
 
-    @Update
-    suspend fun updateYardPrice(price: YardPriceEntity)
+    @Delete
+    suspend fun deletePrice(price: YardPriceEntity)
 
-    @Query("SELECT * FROM yard_prices WHERE yardId = :yardId ORDER BY metalGrade ASC")
-    fun getYardPrices(yardId: Long): Flow<List<YardPriceEntity>>
-
-    @Query("SELECT * FROM yard_prices WHERE metalGrade = :metalGrade ORDER BY pricePerLb DESC")
-    fun getPricesForMetal(metalGrade: MetalGrade): Flow<List<YardPriceEntity>>
+    @Query("SELECT * FROM yard_prices ORDER BY lastUpdatedTimestamp DESC, id DESC")
+    fun observePrices(): Flow<List<YardPriceEntity>>
 }

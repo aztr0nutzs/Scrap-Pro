@@ -17,6 +17,8 @@ CSS = (ROOT / "preview/styles.css").read_text()
 HOME = (ANDROID / "java/com/example/ui/home/HomeScreen.kt").read_text()
 DATABASE = (ANDROID / "java/com/example/data/local/ScrapProDatabase.kt").read_text()
 PROFIT = (ANDROID / "java/com/example/ui/calculators/ProfitCalculator.kt").read_text()
+YARDS = (ANDROID / "java/com/example/ui/yardfinder/YardFinderScreen.kt").read_text()
+LOCATION = (ANDROID / "java/com/example/data/repository/LocationRepository.kt").read_text()
 
 errors: list[str] = []
 
@@ -138,6 +140,14 @@ if "fallbackToDestructiveMigration" in DATABASE or "MIGRATION_1_2" not in DATABA
     errors.append("Room must use the explicit 1-to-2 migration without destructive fallback")
 if "saveToActiveHaul" not in PROFIT or "RoomHomeRepository" not in PROFIT:
     errors.append("Profit Calculator is not connected to the persistent active haul")
+for forbidden_yard in ("555-0101", "555-0202", "555-0303", "40.7128 // Default", "fetchLocationsWithPermission"):
+    if forbidden_yard in KOTLIN:
+        errors.append(f"Unsafe or demonstration yard behavior remains: {forbidden_yard}")
+for required_yard in ("Use My Location", "NAVIGATE NOW", "ACTION_DIAL", "resolveActivity", "PermanentlyDenied", "User-reported records only", "STale".upper()):
+    if required_yard not in YARDS + KOTLIN:
+        errors.append(f"Phase 3 yard contract missing: {required_yard}")
+if "locationPrecondition" not in LOCATION or "MIGRATION_2_3" not in DATABASE:
+    errors.append("Permission gating or Room migration 2-to-3 is missing")
 
 if errors:
     print("ScrapPro verification FAILED")
@@ -155,4 +165,5 @@ print("- native dialer and Google Maps intent actions")
 print("- conventional Gradle/source/resource placement and executable wrapper script")
 print("- Kotlin package-to-directory and Android resource-reference validation")
 print("- repository-backed Home states, explicit Room migration, and Profit-to-haul persistence")
+print("- persistent yard CRUD/prices, permission-gated location, filters, dialer, and map fallback")
 print(f"- duplicate-content groups reviewed: {len(duplicate_groups)}")

@@ -60,3 +60,11 @@ No emulator or physical Android device was available, so installation, launch, a
 - `./gradlew assembleDebug` passed and produced `app/build/outputs/apk/debug/app-debug.apk`.
 - `python3 scripts/verify_project.py` passed after binary cleanup and verifies repository-backed Home states, explicit non-destructive migration, Profit persistence wiring, and absence of the former fake dashboard values.
 - No emulator or physical device was available. Room restoration is covered by reopening the repository over the same database; tab restoration remains covered structurally by Navigation Compose save/restore checks.
+
+## Phase 3 yards directory verification
+
+- Temporarily restored the authoritative wrapper and artwork from commit `6141566` only as uncommitted build inputs; removed them before commit and archive creation.
+- `./gradlew test` passed 22 tests, including directory filtering/hours/distance/staleness, permission preconditions, dial/map intent construction, Room CRUD/cascade behavior, and migrations 1→2→3.
+- `./gradlew assembleDebug` passed and produced `app/build/outputs/apk/debug/app-debug.apk`.
+- `npm ci && npm run build` passed with zero audit vulnerabilities.
+- `python3 scripts/verify_project.py` passed after binary cleanup and rejects fictional 555 records, silent New York fallback, missing location gating, and missing Phase 3 contracts.
